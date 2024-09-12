@@ -11,28 +11,36 @@ contract Wallxa {
 
     uint genesis = (block.timestamp / (60 * 60 * 24));
 
+    struct Info {
+        uint tier;
+        bytes url;
+        bytes pic;
+    }
 
     mapping (uint => address) owners;
+    mapping (uint => Info) data;
     mapping (uint => uint) validity;
-    mapping (uint => uint) tiers;
+    mapping (address => address[]) pings;
+    
 
     /**
      * @dev Store value in variable
      * @param num value to store
      */
-    function rent(uint num) public payable{
-        uint tier = 0;
+    function rent(uint num, string memory link, string memory pc) public payable{
+        uint tier_val = 0;
         if (num >= 1 && num < 8){
-            tier = 3;
+            tier_val = 3;
         }
         else if (num >= 8 && num < 15){
-            tier = 2;
+            tier_val = 2;
         }
         else {
-            tier = 1;
+            tier_val = 1;
         }
         uint day_now = (block.timestamp / (60*60*24));
-        uint price = tier * ((3000 + day_now - genesis)/3) * 10000 gwei;
+        uint price = tier_val * ((3000 + day_now - genesis)/3) * 10000 gwei;
+        require (num > 0, "the slots start from 1");
         require (num <= 21, "wallXa has 21 slots only");
         require (msg.value >= price, "not enough gwei attached");
         uint val = validity[num];
@@ -41,12 +49,20 @@ contract Wallxa {
             require (cur_owner != msg.sender, "you already own this slot");
             require (val < day_now, "this slot is still booked!");
             validity[num] = day_now + 30;
-            tiers[num] = tier;
+            data[num] = Info({
+                tier: tier_val,
+                url: bytes(link),
+                pic: bytes(pc)
+            });
             owners[num] = msg.sender;
         }
         else {
             validity[num] = day_now + 30;
-            tiers[num] = tier;
+            data[num] = Info({
+                tier: tier_val,
+                url: bytes(link),
+                pic: bytes(pc)
+            });
             owners[num] = msg.sender;
         }
 
@@ -57,5 +73,72 @@ contract Wallxa {
         uint day_now = (block.timestamp / (60 * 60 * 24));
         uint bp = ((3000 + day_now - genesis)/3) * 10000;
         return bp;
+    }
+
+    function retrieve_active_urls() public view returns (string[21][2] memory){
+        uint day_now = (block.timestamp / (60 * 60 *24));
+        string[21][2] memory res;
+        for (uint i = 1; i < 22; i++){
+            uint val = validity[i];
+           
+            if (day_now <= val){
+                Info memory inf = data[i];
+                res[i - 1][0] = string(inf.url);
+                res[i - 1][1] = string(inf.pic);
+
+            }
+            else {
+                res[i - 1][0] = "";
+                res[i - 1][1] = "";
+            }
+            
+        }
+        return res;
+    }
+
+    function ping(address recipient) public {
+        bool flag1 = false;
+        bool flag2 = false;
+        uint day_now = (block.timestamp / (60 * 60 * 24));
+        for (uint i = 1; i < 22; i++){
+            if (msg.sender == owners[i] && validity[i] >= day_now && data[i].tier >= 2){
+                flag1 = true;
+            }
+            if (recipient == owners[i] && validity[i] >= day_now && data[i].tier >= 2){
+                flag2 = true;
+            }
+            if (flag1 && flag2){
+                break;
+            }
+        }
+        require(flag1, "only owner of a tier 2+ slot can ping");
+        require(flag2, "only owner of a tier 2+ slot can be pinged");
+        address[] memory pings_cur = pings[recipient];
+        require (!exists(msg.sender, pings_cur), "you have already pinged this address");
+        pings[recipient].push(msg.sender);  
+    }
+
+    function  exists(address add, address[] memory addresses) public pure returns (bool) {
+        for (uint i = 0; i < addresses.length; i++) {
+            if (addresses[i] == add) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    function fetch_pings() public view returns (address[] memory){
+        uint day_now = (block.timestamp / (60 * 60 * 24));
+        bool flag = false;
+        for (uint i = 1; i < 22; i++){
+            if (msg.sender == owners[i] && validity[i] >= day_now && data[i].tier >= 2){
+                flag = true;
+                break;
+            }
+            
+        }
+        require (flag, "you no longer have a tier 2+ subscription");
+        return pings[msg.sender];
     }
 }
