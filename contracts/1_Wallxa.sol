@@ -10,8 +10,8 @@ pragma solidity >=0.8.2 <0.9.0;
 contract Wallxa {
 
     uint genesis = (block.timestamp / (60 * 60 * 24));
-    uint last_price = 10000000;
-    uint base_price = 10000000;
+    uint last_price = 10000;
+    uint base_price = 10000;
 
     struct Info {
         uint tier;
@@ -43,7 +43,7 @@ contract Wallxa {
         uint day_now = (block.timestamp / (60*60*24));
         uint filled = 0;
         uint price = 0;
-        uint prop_price = tier_val * ((3000 + day_now - genesis)/3) * 10000 gwei;
+        uint prop_price = tier_val * ((3000 + day_now - genesis)/3) * 10 gwei;
         for (uint k = 1; k < 22; k++){
             if (validity[k] >= day_now){
                 filled = filled + 1;
@@ -97,7 +97,7 @@ contract Wallxa {
         uint day_now = (block.timestamp / (60*60*24));
         uint filled = 0;
         uint price = 0;
-        uint prop_price = ((3000 + day_now - genesis)/3) * 10000 gwei;
+        uint prop_price = ((3000 + day_now - genesis)/3) * 10 gwei;
         for (uint k = 1; k < 22; k++){
             if (validity[k] >= day_now){
                 filled = filled + 1;
