@@ -10,6 +10,8 @@ pragma solidity >=0.8.2 <0.9.0;
 contract Wallxa {
 
     uint genesis = (block.timestamp / (60 * 60 * 24));
+    uint last_price = 10000000;
+    uint base_price = 10000000;
 
     struct Info {
         uint tier;
@@ -39,7 +41,28 @@ contract Wallxa {
             tier_val = 1;
         }
         uint day_now = (block.timestamp / (60*60*24));
-        uint price = tier_val * ((3000 + day_now - genesis)/3) * 10000 gwei;
+        uint filled = 0;
+        uint price = 0;
+        uint prop_price = tier_val * ((3000 + day_now - genesis)/3) * 10000 gwei;
+        for (uint k = 1; k < 22; k++){
+            if (validity[k] >= day_now){
+                filled = filled + 1;
+            }
+        }
+        if (filled > 15){
+            price = prop_price;
+        }
+        else if (filled > 7 && filled <= 15){
+            price = last_price;
+        }
+        else {
+            if (last_price * 9 > 10 * base_price){
+                price = (last_price * 9)/10 ;
+            }
+            else {
+                price = base_price;
+            }
+        }
         require (num > 0, "the slots start from 1");
         require (num <= 21, "wallXa has 21 slots only");
         require (msg.value >= price, "not enough gwei attached");
@@ -65,14 +88,37 @@ contract Wallxa {
             });
             owners[num] = msg.sender;
         }
+        last_price = price;
 
     }
 
    
     function retrieve_base_price() public view returns (uint){
-        uint day_now = (block.timestamp / (60 * 60 * 24));
-        uint bp = ((3000 + day_now - genesis)/3) * 10000;
-        return bp;
+        uint day_now = (block.timestamp / (60*60*24));
+        uint filled = 0;
+        uint price = 0;
+        uint prop_price = ((3000 + day_now - genesis)/3) * 10000 gwei;
+        for (uint k = 1; k < 22; k++){
+            if (validity[k] >= day_now){
+                filled = filled + 1;
+            }
+        }
+        if (filled > 15){
+            price = prop_price;
+        }
+        else if (filled > 7 && filled <= 15){
+            price = last_price;
+        }
+        else {
+            if (last_price * 9 > 10 * base_price){
+                price = (last_price * 9)/10 ;
+            }
+            else {
+                price = base_price;
+            }
+            
+        }
+        return price;
     }
 
     function retrieve_active_urls() public view returns (string[21][2] memory){
@@ -101,7 +147,7 @@ contract Wallxa {
         bool flag2 = false;
         uint day_now = (block.timestamp / (60 * 60 * 24));
         for (uint i = 1; i < 22; i++){
-            if (msg.sender == owners[i] && validity[i] >= day_now && data[i].tier >= 2){
+            if (msg.sender == owners[i] && validity[i] >= day_now && data[i].tier == 3){
                 flag1 = true;
             }
             if (recipient == owners[i] && validity[i] >= day_now && data[i].tier >= 2){
@@ -111,7 +157,7 @@ contract Wallxa {
                 break;
             }
         }
-        require(flag1, "only owner of a tier 2+ slot can ping");
+        require(flag1, "only owner of a tier 3+ slot can ping");
         require(flag2, "only owner of a tier 2+ slot can be pinged");
         address[] memory pings_cur = pings[recipient];
         require (!exists(msg.sender, pings_cur), "you have already pinged this address");
