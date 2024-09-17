@@ -15,6 +15,7 @@ contract Wallxa {
 
     struct Info {
         uint tier;
+        string name;
         bytes url;
         bytes pic;
     }
@@ -29,7 +30,7 @@ contract Wallxa {
      * @dev Store value in variable
      * @param num value to store
      */
-    function rent(uint num, string memory link, string memory pc) public payable{
+    function rent(uint num, string memory title, string memory link, string memory pc) public payable{
         uint tier_val = 0;
         if (num >= 1 && num < 8){
             tier_val = 3;
@@ -74,6 +75,7 @@ contract Wallxa {
             validity[num] = day_now + 30;
             data[num] = Info({
                 tier: tier_val,
+                name: title,
                 url: bytes(link),
                 pic: bytes(pc)
             });
@@ -83,6 +85,7 @@ contract Wallxa {
             validity[num] = day_now + 30;
             data[num] = Info({
                 tier: tier_val,
+                name: title,
                 url: bytes(link),
                 pic: bytes(pc)
             });
@@ -121,21 +124,85 @@ contract Wallxa {
         return price;
     }
 
-    function retrieve_active_urls() public view returns (string[21][2] memory){
+    function retrieve_acitve_owners() public view returns (address[21] memory){
         uint day_now = (block.timestamp / (60 * 60 *24));
-        string[21][2] memory res;
+        address[21] memory res;
+        for (uint i = 1; i < 22; i++){
+            uint val = validity[i];
+           
+            if (day_now <= val){
+                address add = owners[i];
+                res[i - 1] = add;
+                
+
+            }
+            else {
+                res[i - 1] = address(0);
+        
+            }
+            
+        }
+        return res;
+    }
+
+
+    function retrieve_active_names() public view returns (string[21] memory){
+        uint day_now = (block.timestamp / (60 * 60 *24));
+        string[21] memory res;
         for (uint i = 1; i < 22; i++){
             uint val = validity[i];
            
             if (day_now <= val){
                 Info memory inf = data[i];
-                res[i - 1][0] = string(inf.url);
-                res[i - 1][1] = string(inf.pic);
+                res[i - 1] = string(inf.name);
+                
 
             }
             else {
-                res[i - 1][0] = "";
-                res[i - 1][1] = "";
+                res[i - 1] = "";
+        
+            }
+            
+        }
+        return res;
+    }
+
+    function retrieve_active_urls() public view returns (string[21] memory){
+        uint day_now = (block.timestamp / (60 * 60 *24));
+        string[21] memory res;
+        for (uint i = 1; i < 22; i++){
+            uint val = validity[i];
+           
+            if (day_now <= val){
+                Info memory inf = data[i];
+                res[i - 1] = string(inf.url);
+                
+
+            }
+            else {
+                res[i - 1] = "";
+        
+            }
+            
+        }
+        return res;
+    }
+
+    function retrieve_active_pics() public view returns (string[21] memory){
+        uint day_now = (block.timestamp / (60 * 60 *24));
+        string[21] memory res;
+        for (uint i = 1; i < 22; i++){
+            uint val = validity[i];
+           
+            if (day_now <= val){
+                Info memory inf = data[i];
+                res[i - 1] = string(inf.pic);
+        
+
+            }
+            else {
+                res[i - 1] = "";
+                
             }
             
         }
@@ -186,5 +253,23 @@ contract Wallxa {
         }
         require (flag, "you no longer have a tier 2+ subscription");
         return pings[msg.sender];
+    }
+
+    function fetch_max_tier() public view returns (uint) {
+        uint day_now = (block.timestamp / (60 * 60 *24));
+        uint res = 0;
+        for (uint i = 1; i < 22; i++){
+            uint val = validity[i];
+            
+            if (day_now <= val && msg.sender == owners[i]){
+                Info memory inf = data[i];
+                if (res < inf.tier){
+                    res = inf.tier;
+                }
+            }
+    
+            
+        }
+        return res;
     }
 }
